@@ -70,7 +70,7 @@ func (p *Proxy) getCached(key string) *dns.Msg {
 	return p.resolutionCache[key]
 }
 
-// getCached reads from cache with rw lock
+// saveCached stores new cache entry with rw lock
 func (p *Proxy) saveCached(key string, value *dns.Msg) {
 	p.cacheLock.Lock()
 	defer p.cacheLock.Unlock()
