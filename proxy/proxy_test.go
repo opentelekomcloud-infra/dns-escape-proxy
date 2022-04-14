@@ -1,37 +1,16 @@
 package proxy
 
 import (
+	"context"
 	"net"
 	"net/http"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/miekg/dns"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-func assertEquals(t *testing.T, expected, actual interface{}) {
-	t.Helper()
-	if expected != actual {
-		t.Fatalf("Expected %v (%[1]T) but got %v(%[2]T)", expected, actual)
-	}
-}
-
-func assertNotEmpty(t *testing.T, actual interface{}) {
-	t.Helper()
-	v := reflect.ValueOf(actual)
-	length := v.Len()
-	if length < 1 {
-		t.Fatal("Expected non-empty slice")
-	}
-}
-
-func assertNoErr(t *testing.T, err error) {
-	t.Helper()
-	if err != nil {
-		t.Fatalf("Got unexpected error: %v (%[1]T)", err)
-	}
-}
 
 func httpClientWithDNS(resolver *net.Resolver) *http.Client {
 	return &http.Client{
@@ -43,7 +22,7 @@ func httpClientWithDNS(resolver *net.Resolver) *http.Client {
 				Resolver:  resolver,
 			}).DialContext,
 		},
-		Timeout: 3 * time.Millisecond,
+		Timeout: 2 * time.Second,
 	}
 }
 
@@ -63,9 +42,9 @@ func TestResolve(t *testing.T) {
 					},
 				},
 			}, address)
-			assertNoErr(t, err)
-			assertEquals(t, true, resp.Response)
-			assertNotEmpty(t, resp.Answer)
+			require.NoError(t, err)
+			require.True(t, resp.Response)
+			assert.NotEmpty(t, resp.Answer)
 		})
 	}
 }
@@ -84,9 +63,9 @@ func TestCacheUsed(t *testing.T) {
 				},
 			},
 		}, defaultDNS)
-		assertNoErr(t, err)
-		assertEquals(t, true, resp.Response)
-		assertEquals(t, 1, len(p.resolutionCache))
+		require.NoError(t, err)
+		require.True(t, resp.Response)
+		assert.Equal(t, 1, len(p.resolutionCache))
 	})
 
 	t.Run("non-existing", func(t *testing.T) {
@@ -101,8 +80,18 @@ func TestCacheUsed(t *testing.T) {
 				},
 			},
 		}, defaultDNS)
-		assertNoErr(t, err)
-		assertEquals(t, true, resp.Response)
-		assertEquals(t, 0, len(p.resolutionCache))
+		require.NoError(t, err)
+		require.True(t, resp.Response)
+		assert.Equal(t, 0, len(p.resolutionCache))
 	})
+}
+
+func TestFunctional(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	r := Resolver(ctx, 0xfff, "udp", defaultDNS)
+	h := httpClientWithDNS(r)
+	resp, err := h.Get("https://google.com/")
+	require.NoError(t, err)
+	assert.Equal(t, 200, resp.StatusCode)
 }

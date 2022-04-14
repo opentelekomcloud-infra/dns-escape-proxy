@@ -105,8 +105,8 @@ func (p *Proxy) resolve(msg *dns.Msg, remoteDNS string) (*dns.Msg, error) {
 	return result, nil
 }
 
-// ProxyResolver starts DNS server and returns resolver using it
-func ProxyResolver(ctx context.Context, port int, network string, remoteDNS string) *net.Resolver {
+// Resolver starts DNS server and returns resolver using it
+func Resolver(ctx context.Context, port int, network string, remoteDNS string) *net.Resolver {
 	p := new(Proxy)
 	go func() {
 		err := p.Serve(port, network, remoteDNS)
@@ -117,12 +117,9 @@ func ProxyResolver(ctx context.Context, port int, network string, remoteDNS stri
 
 	// stop server on context cancel
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				if err := ctx.Err(); err != nil {
-					log.Fatal(err)
-				}
+		for range ctx.Done() {
+			if err := ctx.Err(); err != nil {
+				log.Fatal(err)
 			}
 		}
 	}()
