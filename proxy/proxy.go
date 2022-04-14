@@ -43,6 +43,19 @@ func (p *Proxy) Serve(port int, network, remoteDNS string) error {
 	return p.server.ListenAndServe()
 }
 
+func getFreePort() (int, error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		if err := listener.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	return listener.Addr().(*net.TCPAddr).Port, nil
+}
+
 func (p *Proxy) handler(remoteDNS string) dns.HandlerFunc {
 	return func(w dns.ResponseWriter, msg *dns.Msg) {
 		var err error
@@ -105,8 +118,18 @@ func (p *Proxy) resolve(msg *dns.Msg, remoteDNS string) (*dns.Msg, error) {
 	return result, nil
 }
 
-// Resolver starts DNS server and returns resolver using it
+// Resolver starts DNS server and returns resolver using it.
+//
+// If port is set to 0, the first free port will be used
 func Resolver(ctx context.Context, port int, network string, remoteDNS string) *net.Resolver {
+	if port == 0 {
+		var err error
+		port, err = getFreePort()
+		if err != nil {
+			log.Fatal("failed to find free port, please set it manually")
+		}
+	}
+
 	p := new(Proxy)
 	go func() {
 		err := p.Serve(port, network, remoteDNS)
@@ -119,6 +142,9 @@ func Resolver(ctx context.Context, port int, network string, remoteDNS string) *
 	go func() {
 		for range ctx.Done() {
 			if err := ctx.Err(); err != nil {
+				log.Fatal(err)
+			}
+			if err := p.server.Shutdown(); err != nil {
 				log.Fatal(err)
 			}
 		}

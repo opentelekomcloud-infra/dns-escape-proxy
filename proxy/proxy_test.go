@@ -17,9 +17,7 @@ func httpClientWithDNS(resolver *net.Resolver) *http.Client {
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-				Resolver:  resolver,
+				Resolver: resolver,
 			}).DialContext,
 		},
 		Timeout: 2 * time.Second,
@@ -89,9 +87,9 @@ func TestCacheUsed(t *testing.T) {
 func TestFunctional(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	r := Resolver(ctx, 0xfff, "udp", defaultDNS)
+	r := Resolver(ctx, 0, "udp", defaultDNS)
 	h := httpClientWithDNS(r)
-	resp, err := h.Get("https://google.com/")
+	resp, err := h.Get("https://open-telekom-cloud.com/en")
 	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
 }
