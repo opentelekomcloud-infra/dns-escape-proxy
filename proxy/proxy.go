@@ -1,6 +1,6 @@
 // This is Trojan horse to change DNS resolution to be universally correct independent of system configuration
 
-package dns_proxy
+package proxy
 
 import (
 	"context"
@@ -13,6 +13,11 @@ import (
 
 	rdns "github.com/folbricht/routedns"
 	"github.com/miekg/dns"
+)
+
+const (
+	CloudFlareDoH = "https://cloudflare-dns.com/dns-query"
+	GoogleDoH     = "https://dns.google/dns-query"
 )
 
 type Proxy struct {

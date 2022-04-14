@@ -7,7 +7,7 @@ import (
 	"context"
 	"net"
 
-	proxy "github.com/opentelekomcloud-infra/dns-escape-proxy/proxy"
+	"github.com/opentelekomcloud-infra/dns-escape-proxy/proxy"
 )
 
 // this is automount defaults

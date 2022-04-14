@@ -1,24 +1,27 @@
-package dns_proxy
+package proxy
 
 import (
 	"net"
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/miekg/dns"
 )
 
-func assertEquals(t *testing.T, expected, actual any) {
+func assertEquals(t *testing.T, expected, actual interface{}) {
 	t.Helper()
 	if expected != actual {
 		t.Fatalf("Expected %v (%[1]T) but got %v(%[2]T)", expected, actual)
 	}
 }
 
-func assertNotEmpty[T any](t *testing.T, actual []T) {
+func assertNotEmpty(t *testing.T, actual interface{}) {
 	t.Helper()
-	if len(actual) < 1 {
+	v := reflect.ValueOf(actual)
+	length := v.Len()
+	if length < 1 {
 		t.Fatal("Expected non-empty slice")
 	}
 }
@@ -44,8 +47,10 @@ func httpClientWithDNS(resolver *net.Resolver) *http.Client {
 	}
 }
 
+const defaultDNS = CloudFlareDoH
+
 func TestResolve(t *testing.T) {
-	addresses := []string{"https://cloudflare-dns.com/dns-query", "https://dns.google/dns-query"}
+	addresses := []string{GoogleDoH, CloudFlareDoH}
 	for _, address := range addresses {
 		p := &Proxy{}
 		t.Run(address, func(t *testing.T) {
@@ -66,7 +71,6 @@ func TestResolve(t *testing.T) {
 }
 
 func TestCacheUsed(t *testing.T) {
-	address := "https://cloudflare-dns.com/dns-query"
 
 	t.Run("existing", func(t *testing.T) {
 		p := &Proxy{}
@@ -79,7 +83,7 @@ func TestCacheUsed(t *testing.T) {
 					Qclass: dns.ClassINET,
 				},
 			},
-		}, address)
+		}, defaultDNS)
 		assertNoErr(t, err)
 		assertEquals(t, true, resp.Response)
 		assertEquals(t, 1, len(p.resolutionCache))
@@ -96,7 +100,7 @@ func TestCacheUsed(t *testing.T) {
 					Qclass: dns.ClassINET,
 				},
 			},
-		}, address)
+		}, defaultDNS)
 		assertNoErr(t, err)
 		assertEquals(t, true, resp.Response)
 		assertEquals(t, 0, len(p.resolutionCache))

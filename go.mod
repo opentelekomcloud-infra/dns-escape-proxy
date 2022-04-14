@@ -1,6 +1,6 @@
 module github.com/opentelekomcloud-infra/dns-escape-proxy
 
-go 1.18
+go 1.17
 
 require (
 	github.com/folbricht/routedns v0.1.1-0.20220410180053-2056db38f161
